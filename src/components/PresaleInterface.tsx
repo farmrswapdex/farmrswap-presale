@@ -31,8 +31,16 @@ import logo from "@/assets/logo_falwsb.png";
 
 export default function PresaleInterface() {
   const [ethValue, setEthValue] = useState("0");
+  const [error, setError] = useState<string | null>(null);
+  const [showTxHash, setShowTxHash] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
   const { address, isConnected } = useAccount();
-  const { writeContract, data: txHash, isPending } = useWriteContract();
+  const {
+    writeContract,
+    data: txHash,
+    isPending,
+    error: contractError,
+  } = useWriteContract();
   const { isSuccess: txSuccess } = useWaitForTransactionReceipt({
     hash: txHash,
   });
@@ -71,6 +79,29 @@ export default function PresaleInterface() {
     return () => clearInterval(timer);
   }, []);
 
+  // Set error from contract error and auto-dismiss after 8 seconds
+  useEffect(() => {
+    if (contractError) {
+      setError(
+        contractError.message || "Transaction failed. Please try again."
+      );
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [contractError]);
+
+  // Auto-dismiss error messages after 8 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   // Contract reads
   const { data: tokenDecimals } = useReadContract({
     address: tokenContract.address as `0x${string}`,
@@ -85,14 +116,15 @@ export default function PresaleInterface() {
   // });
 
   const tokenSymbol = "$FARMR";
-  const saleAllocation = 15000000;
+  const saleAllocation = 15000;
 
-  const { data: rawTokenBalance } = useReadContract({
-    address: tokenContract.address as `0x${string}`,
-    abi: tokenContract.abi,
-    functionName: "balanceOf",
-    args: address ? [address] : undefined,
-  });
+  const { data: rawTokenBalance, refetch: refetchTokenBalance } =
+    useReadContract({
+      address: tokenContract.address as `0x${string}`,
+      abi: tokenContract.abi,
+      functionName: "balanceOf",
+      args: address ? [address] : undefined,
+    });
 
   const { data: rate } = useReadContract({
     address: PresaleContract.address as `0x${string}`,
@@ -100,7 +132,7 @@ export default function PresaleInterface() {
     functionName: "rate",
   });
 
-  const { data: weiRaised } = useReadContract({
+  const { data: weiRaised, refetch: refetchWeiRaised } = useReadContract({
     address: PresaleContract.address as `0x${string}`,
     abi: PresaleContract.abi,
     functionName: "weiRaised",
@@ -130,7 +162,7 @@ export default function PresaleInterface() {
     functionName: "hardCap",
   });
 
-  const { data: tokensSold } = useReadContract({
+  const { data: tokensSold, refetch: refetchTokensSold } = useReadContract({
     address: PresaleContract.address as `0x${string}`,
     abi: PresaleContract.abi,
     functionName: "tokensSold",
@@ -148,6 +180,38 @@ export default function PresaleInterface() {
     functionName: "maxCostToEnter",
   });
 
+  // Show transaction hash when it becomes available and auto-dismiss
+  useEffect(() => {
+    if (txHash) {
+      setShowTxHash(txHash as string);
+      const timer = setTimeout(() => {
+        setShowTxHash(null);
+      }, 8000); // Auto-dismiss after 8 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [txHash]);
+
+  // Clear error when transaction succeeds and set auto-dismiss for success
+  useEffect(() => {
+    if (txSuccess) {
+      setError(null);
+      setEthValue("0"); // Clear the input
+      setShowTxHash(null); // Hide transaction hash when success occurs
+      setShowSuccess(true); // Show success message
+
+      // Refetch all relevant data
+      refetchTokenBalance();
+      refetchWeiRaised();
+      refetchTokensSold();
+
+      // Auto-dismiss success message after 5 seconds
+      const timer = setTimeout(() => {
+        setShowSuccess(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [txSuccess, refetchTokenBalance, refetchWeiRaised, refetchTokensSold]);
+
   const formattedTokenBalance = useMemo(() => {
     if (rawTokenBalance == null || tokenDecimals == null) return "0";
     try {
@@ -160,40 +224,129 @@ export default function PresaleInterface() {
   }, [rawTokenBalance, tokenDecimals]);
 
   const computedTokenOutput = useMemo(() => {
-    if (!rate || !ethValue) return "0";
+    // Return loading indicator or 0 if essential data isn't available
+    if (!rate || !ethValue || ethValue === "0" || ethValue === "") {
+      return "0";
+    }
+
     try {
-      const ethAmountWei = parseEther(ethValue);
-      const amountInTokenUnits = ((rate as bigint) * ethAmountWei) / 10n ** 18n;
-      if (tokenDecimals == null) return amountInTokenUnits.toString();
-      return parseFloat(
-        formatUnits(amountInTokenUnits, Number(tokenDecimals))
-      ).toLocaleString();
-    } catch {
+      // Parse ETH amount
+      const ethAmount = parseFloat(ethValue);
+      if (isNaN(ethAmount) || ethAmount <= 0) return "0";
+
+      // Convert rate from contract (divide by 100) and parse as number for easier calculation
+      const rateNumber = Number(rate) / 100;
+      if (rateNumber <= 0) return "0";
+
+      // Calculate tokens: ETH amount * rate
+      const tokenAmount = ethAmount * rateNumber;
+
+      // Format the result
+      if (tokenAmount >= 1) {
+        return Math.floor(tokenAmount).toLocaleString();
+      } else if (tokenAmount >= 0.01) {
+        return tokenAmount.toFixed(2);
+      } else {
+        return tokenAmount.toFixed(6);
+      }
+    } catch (error) {
+      console.error("Error calculating token output:", error);
       return "0";
     }
   }, [rate, ethValue, tokenDecimals]);
 
+  // Helper function to format tokens from wei to actual count
+  const formattedTokensSold = useMemo(() => {
+    if (!tokensSold || !tokenDecimals) return "0";
+    const tokensSoldActual =
+      Number(tokensSold as bigint) / Math.pow(10, Number(tokenDecimals));
+    return Math.floor(tokensSoldActual).toLocaleString();
+  }, [tokensSold, tokenDecimals]);
+
   const progressPercentage = useMemo(() => {
-    if (!tokensSold) return 0;
-    const pct = Number(
-      ((tokensSold as bigint) * 100n) / BigInt(saleAllocation)
-    );
-    return Math.min(100, Math.max(0, pct));
-  }, [tokensSold, saleAllocation]);
+    if (!tokensSold || !tokenDecimals) return 0;
+
+    // Convert tokensSold from wei to actual tokens
+    const tokensSoldActual =
+      Number(tokensSold as bigint) / Math.pow(10, Number(tokenDecimals));
+
+    // Calculate percentage
+    const pct = (tokensSoldActual * 100) / saleAllocation;
+    return Math.min(100, Math.max(0, Math.round(pct)));
+  }, [tokensSold, saleAllocation, tokenDecimals]);
+
+  const handleMax = () => {
+    if (maxBuy) {
+      setEthValue(Number(formatEther(maxBuy as bigint)).toString());
+    }
+  };
 
   const handleBuy = () => {
-    if (!isConnected || !address) return;
+    if (!isConnected || !address) {
+      setError("Please connect your wallet first");
+      return;
+    }
+
+    // Clear previous errors
+    setError(null);
+
+    // Validate input
+    if (!ethValue || ethValue === "0") {
+      setError("Please enter an amount to purchase");
+      return;
+    }
+
+    // Check if presale is active
+    if (!presaleStatus) {
+      setError("Presale is not currently active");
+      return;
+    }
+
     try {
-      const value = parseEther(ethValue || "0");
+      const value = parseEther(ethValue);
+
+      // Validate min/max buy amounts
+      if (minBuy && value < (minBuy as bigint)) {
+        setError(
+          `Minimum purchase amount is ${Number(
+            formatEther(minBuy as bigint)
+          )} ETH`
+        );
+        return;
+      }
+
+      if (maxBuy && value > (maxBuy as bigint)) {
+        setError(
+          `Maximum purchase amount is ${Number(
+            formatEther(maxBuy as bigint)
+          )} ETH`
+        );
+        return;
+      }
+
+      // Check if hard cap would be exceeded
+      if (
+        hardCap &&
+        weiRaised &&
+        (weiRaised as bigint) + value > (hardCap as bigint)
+      ) {
+        setError(
+          "This purchase would exceed the hard cap. Please reduce the amount."
+        );
+        return;
+      }
+
       writeContract({
         address: PresaleContract.address as `0x${string}`,
         abi: PresaleContract.abi,
         functionName: "buyTokens",
         args: [address],
         value,
+        gas: 300000n, // Add explicit gas limit
       });
     } catch (err) {
-      // no-op; UI will not change on error
+      setError("Invalid amount entered. Please check your input.");
+      console.error("Transaction error:", err);
     }
   };
 
@@ -230,6 +383,42 @@ export default function PresaleInterface() {
           </div>
         </div>
       </header>
+
+      {/* Notifications */}
+      <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4">
+        {error && (
+          <Alert className="mb-4 border-red-500 bg-red-50 shadow-lg">
+            <AlertCircle className="h-4 w-4 text-red-500" />
+            <AlertDescription className="text-red-700">
+              {error}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {showTxHash && !error && (
+          <Alert
+            className="mb-4 shadow-lg"
+            style={{ backgroundColor: "#F1F1F1" }}
+          >
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-xs text-dark-blue-green">
+              Transaction: {showTxHash.substring(0, 10)}...
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {showSuccess && (
+          <Alert
+            className="mb-4 border-bright-blue shadow-lg"
+            style={{ backgroundColor: "#F1F1F1" }}
+          >
+            <AlertCircle className="h-4 w-4 text-bright-blue" />
+            <AlertDescription className="text-dark-blue-green">
+              Success! Tokens purchased.
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
@@ -272,8 +461,10 @@ export default function PresaleInterface() {
                     <span className="text-sm text-muted-blue">Rate</span>
                     <span className="font-semibold text-white">
                       {rate
-                        ? `${rate.toString()} ${tokenSymbol ?? "TOKEN"} / ETH`
-                        : "-"}
+                        ? `${(Number(rate) / 100).toLocaleString()} ${
+                            tokenSymbol ?? "TOKEN"
+                          } / ETH`
+                        : "Loading..."}
                     </span>
                   </div>
                   <Separator className="bg-muted-blue" />
@@ -316,9 +507,7 @@ export default function PresaleInterface() {
                   {/* <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-blue">Tokens Sold</span>
                     <span className="font-semibold text-white">
-                      {tokensSold
-                        ? Number(tokensSold as bigint).toLocaleString()
-                        : "0"}
+                      {formattedTokensSold}
                     </span>
                   </div> */}
                   <div className="flex justify-between items-center">
@@ -391,10 +580,7 @@ export default function PresaleInterface() {
                     Tokens Sold
                   </span>
                   <span className="text-sm font-medium text-[#F1F1F1]">
-                    {tokensSold
-                      ? Number(tokensSold as bigint).toLocaleString()
-                      : 0}{" "}
-                    / {saleAllocation.toLocaleString()}
+                    {formattedTokensSold}/ {saleAllocation.toLocaleString()}
                   </span>
                 </div>
                 <Progress
@@ -433,13 +619,22 @@ export default function PresaleInterface() {
                   <Label className="text-sm mb-2 block text-white">
                     You Pay (ETH)
                   </Label>
-                  <Input
-                    type="number"
-                    value={ethValue}
-                    onChange={(e) => setEthValue(e.target.value)}
-                    placeholder="0.00"
-                    className="h-12 text-center font-semibold text-lg bg-light-gray text-dark-blue-green border-muted-blue"
-                  />
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      value={ethValue}
+                      onChange={(e) => setEthValue(e.target.value)}
+                      placeholder="0.00"
+                      className="h-12 text-center font-semibold text-lg bg-light-gray text-dark-blue-green border-muted-blue pr-16"
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleMax}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 px-2 text-xs bg-[#2463EB] hover:bg-dark-blue-green text-white font-medium"
+                    >
+                      MAX
+                    </Button>
+                  </div>
                 </div>
                 <div>
                   <Label className="text-sm mb-2 block text-white">
@@ -449,7 +644,7 @@ export default function PresaleInterface() {
                     type="text"
                     value={computedTokenOutput}
                     readOnly
-                    placeholder="0"
+                    placeholder={rate ? "Enter ETH amount" : "Loading rate..."}
                     className="h-12 text-center font-semibold text-lg bg-light-gray text-dark-blue-green border-muted-blue"
                   />
                 </div>
@@ -461,29 +656,10 @@ export default function PresaleInterface() {
                 disabled={
                   !isConnected || isPending || !ethValue || ethValue === "0"
                 }
-                className="w-full h-12 bg-[#19A24C] hover:bg-dark-blue-green text-white font-semibold text-lg shadow-lg"
+                className="w-full h-12 bg-[#19A24C] hover:bg-[#2463EB] text-white font-semibold text-lg shadow-lg"
               >
                 {isPending ? "Processing..." : "Buy Tokens"}
               </Button>
-
-              {/* Status Messages */}
-              {txHash && (
-                <Alert className="mt-4">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="text-xs">
-                    Transaction: {(txHash as string).substring(0, 10)}...
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {txSuccess && (
-                <Alert className="mt-4 border-bright-blue bg-light-blue">
-                  <AlertCircle className="h-4 w-4 text-bright-blue" />
-                  <AlertDescription className="text-dark-blue-green">
-                    Success! Tokens purchased.
-                  </AlertDescription>
-                </Alert>
-              )}
             </CardContent>
           </Card>
 
