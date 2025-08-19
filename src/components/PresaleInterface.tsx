@@ -445,98 +445,74 @@ export default function PresaleInterface() {
 
         {/* Main Grid */}
         <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {/* Left Column - Info Cards */}
-          <div className="space-y-6">
-            {/* Sale Information */}
+          {/* Right Column - User Balance */}
+          <div className="space-y-6 lg:order-1 order-1">
+            {/* User Token Balance Card */}
             <Card className="bg-dark-blue border-muted-blue">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2 text-white">
-                  <TrendingUp className="w-4 h-4 text-bright-blue" />
-                  Sale Information
+                <CardTitle className="text-lg text-white">
+                  Your Balance
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-blue">Rate</span>
-                    <span className="font-semibold text-white">
-                      {rate
-                        ? `${(Number(rate) / 100).toLocaleString()} ${
-                            tokenSymbol ?? "TOKEN"
-                          } / ETH`
-                        : "Loading..."}
-                    </span>
+                <p className="text-3xl font-bold text-white">
+                  {formattedTokenBalance} {tokenSymbol ?? "TOKEN"}
+                </p>
+                <p className="text-sm text-muted-blue mt-1">
+                  Wallet:{" "}
+                  {address
+                    ? `${address.slice(0, 6)}...${address.slice(-4)}`
+                    : "Not connected"}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Features Card - Hidden on mobile/tablet, shown on desktop in right column */}
+            <Card className="bg-dark-blue border-muted-blue hidden lg:block">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg text-white">
+                  Why Buy Now?
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-bright-blue flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-white text-xs">✓</span>
                   </div>
-                  <Separator className="bg-muted-blue" />
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-blue">
-                      Raised (ETH)
-                    </span>
-                    <span className="font-semibold text-muted-blue-alt">
-                      {weiRaised
-                        ? `${Number(
-                            formatEther(weiRaised as bigint)
-                          ).toLocaleString()}`
-                        : "0"}
-                    </span>
+                  <p className="text-sm text-muted-blue">
+                    Lowest price before listing
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-bright-blue flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-white text-xs">✓</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-blue">
-                      Soft Cap (ETH)
-                    </span>
-                    <span className="font-semibold text-white">
-                      {softCap
-                        ? Number(
-                            formatEther(softCap as bigint)
-                          ).toLocaleString()
-                        : "-"}
-                    </span>
+                  <p className="text-sm text-muted-blue">
+                    5% bonus tokens this stage
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-bright-blue flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-white text-xs">✓</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-blue">
-                      Hard Cap (ETH)
-                    </span>
-                    <span className="font-semibold text-white">
-                      {hardCap
-                        ? Number(
-                            formatEther(hardCap as bigint)
-                          ).toLocaleString()
-                        : "-"}
-                    </span>
+                  <p className="text-sm text-muted-blue">
+                    Automatic distribution
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-bright-blue flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-white text-xs">✓</span>
                   </div>
-                  {/* <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-blue">Tokens Sold</span>
-                    <span className="font-semibold text-white">
-                      {formattedTokensSold}
-                    </span>
-                  </div> */}
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-blue">
-                      Min Buy (ETH)
-                    </span>
-                    <span className="font-semibold text-white">
-                      {minBuy
-                        ? Number(formatEther(minBuy as bigint)).toLocaleString()
-                        : "-"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-blue">
-                      Max Buy (ETH)
-                    </span>
-                    <span className="font-semibold text-white">
-                      {maxBuy
-                        ? Number(formatEther(maxBuy as bigint)).toLocaleString()
-                        : "-"}
-                    </span>
-                  </div>
+                  <p className="text-sm text-muted-blue">
+                    Verified smart contract
+                  </p>
                 </div>
               </CardContent>
             </Card>
           </div>
 
           {/* Center Column - Main Purchase Card */}
-          <Card className="lg:col-span-1 border-2 border-bright-blue shadow-xl bg-dark-blue">
+          <Card className="lg:col-span-1 lg:order-2 order-2 border-2 border-bright-blue shadow-xl bg-dark-blue">
             <CardHeader className="text-center pb-4">
               <div className="inline-flex items-center gap-2 text-bright-blue text-sm font-semibold mb-3">
                 <Clock className="w-4 h-4" />
@@ -630,7 +606,7 @@ export default function PresaleInterface() {
                     <Button
                       type="button"
                       onClick={handleMax}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 px-2 text-xs bg-[#2463EB] hover:bg-dark-blue-green text-white font-medium"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 px-2 text-xs bg-[#2463EB] hover:bg-dark-blue-green text-white font-medium"
                     >
                       MAX
                     </Button>
@@ -663,71 +639,138 @@ export default function PresaleInterface() {
             </CardContent>
           </Card>
 
-          {/* Right Column - User Balance */}
-          <div className="space-y-6">
-            {/* User Token Balance Card */}
+          {/* Left Column - Info Cards */}
+          <div className="space-y-6 lg:order-3 order-3">
+            {/* Sale Information */}
             <Card className="bg-dark-blue border-muted-blue">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg text-white">
-                  Your Balance
+                <CardTitle className="text-lg flex items-center gap-2 text-white">
+                  <TrendingUp className="w-4 h-4 text-bright-blue" />
+                  Sale Information
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold text-white">
-                  {formattedTokenBalance} {tokenSymbol ?? "TOKEN"}
-                </p>
-                <p className="text-sm text-muted-blue mt-1">
-                  Wallet:{" "}
-                  {address
-                    ? `${address.slice(0, 6)}...${address.slice(-4)}`
-                    : "Not connected"}
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Features Card */}
-            <Card className="bg-dark-blue border-muted-blue">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg text-white">
-                  Why Buy Now?
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-bright-blue flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-white text-xs">✓</span>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-blue">Rate</span>
+                    <span className="font-semibold text-white">
+                      {rate
+                        ? `${(Number(rate) / 100).toLocaleString()} ${
+                            tokenSymbol ?? "TOKEN"
+                          } / ETH`
+                        : "Loading..."}
+                    </span>
                   </div>
-                  <p className="text-sm text-muted-blue">
-                    Lowest price before listing
-                  </p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-bright-blue flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-white text-xs">✓</span>
+                  <Separator className="bg-muted-blue" />
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-blue">
+                      Raised (ETH)
+                    </span>
+                    <span className="font-semibold text-muted-blue-alt">
+                      {weiRaised
+                        ? `${Number(
+                            formatEther(weiRaised as bigint)
+                          ).toLocaleString()}`
+                        : "0"}
+                    </span>
                   </div>
-                  <p className="text-sm text-muted-blue">
-                    5% bonus tokens this stage
-                  </p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-bright-blue flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-white text-xs">✓</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-blue">
+                      Soft Cap (ETH)
+                    </span>
+                    <span className="font-semibold text-white">
+                      {softCap
+                        ? Number(
+                            formatEther(softCap as bigint)
+                          ).toLocaleString()
+                        : "-"}
+                    </span>
                   </div>
-                  <p className="text-sm text-muted-blue">
-                    Automatic distribution
-                  </p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-bright-blue flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-white text-xs">✓</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-blue">
+                      Hard Cap (ETH)
+                    </span>
+                    <span className="font-semibold text-white">
+                      {hardCap
+                        ? Number(
+                            formatEther(hardCap as bigint)
+                          ).toLocaleString()
+                        : "-"}
+                    </span>
                   </div>
-                  <p className="text-sm text-muted-blue">
-                    Verified smart contract
-                  </p>
+                  {/* <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-blue">Tokens Sold</span>
+                    <span className="font-semibold text-white">
+                      {formattedTokensSold}
+                    </span>
+                  </div> */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-blue">
+                      Min Buy (ETH)
+                    </span>
+                    <span className="font-semibold text-white">
+                      {minBuy
+                        ? Number(formatEther(minBuy as bigint)).toLocaleString()
+                        : "-"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-blue">
+                      Max Buy (ETH)
+                    </span>
+                    <span className="font-semibold text-white">
+                      {maxBuy
+                        ? Number(formatEther(maxBuy as bigint)).toLocaleString()
+                        : "-"}
+                    </span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
+        </div>
+
+        {/* Features Card - Mobile/Tablet only, appears last */}
+        <div className="lg:hidden mt-8 grid lg:grid-cols-3 gap-8 max-w-6xl ">
+          <Card className="bg-dark-blue border-muted-blue">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg text-white">Why Buy Now?</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-bright-blue flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-white text-xs">✓</span>
+                </div>
+                <p className="text-sm text-muted-blue">
+                  Lowest price before listing
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-bright-blue flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-white text-xs">✓</span>
+                </div>
+                <p className="text-sm text-muted-blue">
+                  5% bonus tokens this stage
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-bright-blue flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-white text-xs">✓</span>
+                </div>
+                <p className="text-sm text-muted-blue">
+                  Automatic distribution
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-bright-blue flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-white text-xs">✓</span>
+                </div>
+                <p className="text-sm text-muted-blue">
+                  Verified smart contract
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
