@@ -9,4 +9,4 @@ export const TOKEN_ADDRESS: `0x${string}` =
 
 // Presale contract address 
 export const PRESALE_ADDRESS: `0x${string}` =
-  "0xCe7eEcFF3E859b15D9E186ceEc1e83ca9Ac568CA";
+  "0x3627daa9D6FCB5CfF1C24Fa83896A60724D17B0e";

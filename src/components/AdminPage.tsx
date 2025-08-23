@@ -172,8 +172,8 @@ export default function AdminPage() {
     }
 
     try {
-      // Convert rate to the format expected by contract (multiply by 100)
-      const rateForContract = BigInt(Math.floor(parseFloat(initRate) * 100));
+      // Use the rate exactly as entered - no decimal conversion needed
+      const rateForContract = BigInt(initRate);
 
       writeContract({
         address: PresaleContract.address as `0x${string}`,

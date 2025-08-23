@@ -116,7 +116,7 @@ export default function PresaleInterface() {
   // });
 
   const tokenSymbol = "$FARMR";
-  const saleAllocation = 15000;
+  const saleAllocation = 6000000;
 
   const { data: rawTokenBalance, refetch: refetchTokenBalance } =
     useReadContract({
