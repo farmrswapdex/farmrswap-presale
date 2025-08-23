@@ -1,7 +1,7 @@
 export const OWNER = "0xE6BA1A6f95B5d9994332C454E607fe9122DdA837"
 
 export const tokenContract = {
-    address: "0xc8F4F3404D8CF7dD4f5eCB8999a611985143B9dd", // Farmr Contract address
+    address: "0x66691c42ff0d5dd87125fd594927Dd31C208c77d", // Farmr Contract address
     abi: [
         {
             "inputs": [
@@ -447,7 +447,7 @@ export const tokenContract = {
 
 
 export const PresaleContract = {
-    address: "0x3627daa9D6FCB5CfF1C24Fa83896A60724D17B0e", // Farmr presale Contract address
+    address: "0x8D3815197b07A24D8Df7f50E28cD47Fe2165d65F", // Farmr presale Contract address
     abi: [
         {
             "inputs": [],

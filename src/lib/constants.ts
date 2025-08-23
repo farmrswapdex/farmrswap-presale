@@ -5,8 +5,8 @@ export const UINT256_MAX = MaxUint256;
 
 // Token address provided by user
 export const TOKEN_ADDRESS: `0x${string}` =
-  "0xc8F4F3404D8CF7dD4f5eCB8999a611985143B9dd";
+  "0x66691c42ff0d5dd87125fd594927Dd31C208c77d";
 
 // Presale contract address 
 export const PRESALE_ADDRESS: `0x${string}` =
-  "0x3627daa9D6FCB5CfF1C24Fa83896A60724D17B0e";
+  "0x8D3815197b07A24D8Df7f50E28cD47Fe2165d65F";

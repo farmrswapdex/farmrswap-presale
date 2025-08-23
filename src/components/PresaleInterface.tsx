@@ -8,6 +8,16 @@ import {
 import { parseEther, formatEther, formatUnits } from "viem";
 
 import { tokenContract, PresaleContract } from "../lib/config";
+import {
+  getPresaleStatus,
+  getTimeUntilStart,
+  getTimeUntilEnd,
+  // formatPresaleDate,
+  PresaleStatus,
+  // PRESALE_START_TIME,
+  // PRESALE_END_TIME,
+  type TimeRemaining,
+} from "../lib/utils";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,37 +55,33 @@ export default function PresaleInterface() {
     hash: txHash,
   });
 
-  // Countdown state
-  const [timeLeft, setTimeLeft] = useState({
-    days: 7,
-    hours: 5,
-    minutes: 58,
-    seconds: 22,
+  // Real countdown state and status
+  const [timeLeft, setTimeLeft] = useState<TimeRemaining>({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
   });
+  const [currentPresaleStatus, setCurrentPresaleStatus] =
+    useState<PresaleStatus>(getPresaleStatus());
 
-  // Mock countdown timer
+  // Real countdown timer
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev.seconds > 0) {
-          return { ...prev, seconds: prev.seconds - 1 };
-        } else if (prev.minutes > 0) {
-          return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
-        } else if (prev.hours > 0) {
-          return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        } else if (prev.days > 0) {
-          return {
-            ...prev,
-            days: prev.days - 1,
-            hours: 23,
-            minutes: 59,
-            seconds: 59,
-          };
-        }
-        return prev;
-      });
-    }, 1000);
+    const updateTimer = () => {
+      const status = getPresaleStatus();
+      setCurrentPresaleStatus(status);
 
+      if (status === PresaleStatus.NOT_STARTED) {
+        setTimeLeft(getTimeUntilStart());
+      } else if (status === PresaleStatus.ACTIVE) {
+        setTimeLeft(getTimeUntilEnd());
+      } else {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      }
+    };
+
+    updateTimer();
+    const timer = setInterval(updateTimer, 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -297,6 +303,16 @@ export default function PresaleInterface() {
     }
 
     // Check if presale is active
+    if (currentPresaleStatus === PresaleStatus.NOT_STARTED) {
+      setError("Presale has not started yet");
+      return;
+    }
+
+    if (currentPresaleStatus === PresaleStatus.ENDED) {
+      setError("Presale has ended. Token purchases are no longer available.");
+      return;
+    }
+
     if (!presaleStatus) {
       setError("Presale is not currently active");
       return;
@@ -310,7 +326,7 @@ export default function PresaleInterface() {
         setError(
           `Minimum purchase amount is ${Number(
             formatEther(minBuy as bigint)
-          )} ETH`
+          )} BLOCX`
         );
         return;
       }
@@ -319,7 +335,7 @@ export default function PresaleInterface() {
         setError(
           `Maximum purchase amount is ${Number(
             formatEther(maxBuy as bigint)
-          )} ETH`
+          )} BLOCX`
         );
         return;
       }
@@ -354,31 +370,35 @@ export default function PresaleInterface() {
     <div className="min-h-screen bg-light-blue font-baloo">
       {/* Header */}
       <header className="border-b bg-dark-blue backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <div className="container mx-auto px-4 py-3 sm:py-4">
+          <div className="flex items-center justify-between min-h-[48px]">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <img
                 src={logo}
                 alt="FarmrSwap"
-                className="w-10 h-10 rounded-lg shadow-md"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg shadow-md"
               />
-              <h1 className="text-xl font-bold text-muted-blue font-fredoka">
+              <h1 className="text-lg sm:text-xl font-bold text-muted-blue font-fredoka">
                 Farmrswap
               </h1>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               {address &&
                 owner &&
                 address.toLowerCase() === (owner as string).toLowerCase() && (
                   <Link
                     to="/admin"
-                    className="flex items-center gap-2 text-muted-blue hover:text-white transition-colors"
+                    className="flex items-center gap-1 sm:gap-2 text-muted-blue hover:text-white transition-colors"
                   >
                     <Settings className="w-4 h-4" />
-                    <span className="text-sm font-medium">Admin</span>
+                    <span className="text-xs sm:text-sm font-medium hidden sm:inline">
+                      Admin
+                    </span>
                   </Link>
                 )}
-              <ConnectButton />
+              <div className="scale-90 sm:scale-100">
+                <ConnectButton />
+              </div>
             </div>
           </div>
         </div>
@@ -429,7 +449,11 @@ export default function PresaleInterface() {
             className="mb-4 bg-[#F1F1F1] text-dark-blue-green border-dark-blue-green"
           >
             <Zap className="w-3 h-3 mr-1" />
-            {presaleStatus ? "Presale Live Now" : "Presale Coming Soon"}
+            {currentPresaleStatus === PresaleStatus.NOT_STARTED
+              ? "Presale Coming Soon"
+              : currentPresaleStatus === PresaleStatus.ACTIVE
+              ? "Presale Live Now"
+              : "Presale Ended"}
           </Badge>
           <h1 className="text-4xl md:text-6xl font-bold text-dark-blue-green mb-4 font-fredoka">
             Farmr<span className="text-[#19A24C]">swap</span>
@@ -441,6 +465,26 @@ export default function PresaleInterface() {
           <p className="text-lg text-dark-blue-green max-w-2xl mx-auto">
             Secure your tokens at the best price before the next stage begins.
           </p>
+
+          {/* Presale Schedule */}
+          {/* <div className="mt-6 space-y-2">
+            {currentPresaleStatus === PresaleStatus.NOT_STARTED && (
+              <p className="text-sm text-dark-blue-green">
+                <strong>Presale Starts:</strong>{" "}
+                {formatPresaleDate(PRESALE_START_TIME)}
+              </p>
+            )}
+            <p className="text-sm text-dark-blue-green">
+              <strong>
+                Presale{" "}
+                {currentPresaleStatus === PresaleStatus.ENDED
+                  ? "Ended"
+                  : "Ends"}
+                :
+              </strong>{" "}
+              {formatPresaleDate(PRESALE_END_TIME)}
+            </p>
+          </div> */}
         </div>
 
         {/* Main Grid */}
@@ -516,7 +560,11 @@ export default function PresaleInterface() {
             <CardHeader className="text-center pb-4">
               <div className="inline-flex items-center gap-2 text-bright-blue text-sm font-semibold mb-3">
                 <Clock className="w-4 h-4" />
-                TIME REMAINING
+                {currentPresaleStatus === PresaleStatus.NOT_STARTED
+                  ? "TIME UNTIL START"
+                  : currentPresaleStatus === PresaleStatus.ACTIVE
+                  ? "TIME REMAINING"
+                  : "PRESALE ENDED"}
               </div>
               <div className="grid grid-cols-4 gap-2 text-center">
                 <div className="bg-light-gray rounded-lg p-3">
@@ -583,7 +631,9 @@ export default function PresaleInterface() {
                     <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
                       <span className="text-white text-xs font-bold">Ξ</span>
                     </div>
-                    <span className="font-medium text-black">Eth Sepolia</span>
+                    <span className="font-medium text-black">
+                      Blocx Mainnet
+                    </span>
                   </div>
                   <ChevronDown className="w-4 h-4" />
                 </Button>
@@ -593,7 +643,7 @@ export default function PresaleInterface() {
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div>
                   <Label className="text-sm mb-2 block text-white">
-                    You Pay (ETH)
+                    You Pay (BLOCX)
                   </Label>
                   <div className="relative">
                     <Input
@@ -620,7 +670,9 @@ export default function PresaleInterface() {
                     type="text"
                     value={computedTokenOutput}
                     readOnly
-                    placeholder={rate ? "Enter ETH amount" : "Loading rate..."}
+                    placeholder={
+                      rate ? "Enter BLOCX amount" : "Loading rate..."
+                    }
                     className="h-12 text-center font-semibold text-lg bg-light-gray text-dark-blue-green border-muted-blue"
                   />
                 </div>
@@ -630,11 +682,22 @@ export default function PresaleInterface() {
               <Button
                 onClick={handleBuy}
                 disabled={
-                  !isConnected || isPending || !ethValue || ethValue === "0"
+                  !isConnected ||
+                  isPending ||
+                  !ethValue ||
+                  ethValue === "0" ||
+                  currentPresaleStatus === PresaleStatus.NOT_STARTED ||
+                  currentPresaleStatus === PresaleStatus.ENDED
                 }
-                className="w-full h-12 bg-[#19A24C] hover:bg-[#2463EB] text-white font-semibold text-lg shadow-lg"
+                className="w-full h-12 bg-[#19A24C] hover:bg-[#2463EB] text-white font-semibold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isPending ? "Processing..." : "Buy Tokens"}
+                {isPending
+                  ? "Processing..."
+                  : currentPresaleStatus === PresaleStatus.NOT_STARTED
+                  ? "Presale Not Started"
+                  : currentPresaleStatus === PresaleStatus.ENDED
+                  ? "Presale Ended"
+                  : "Buy Tokens"}
               </Button>
             </CardContent>
           </Card>
@@ -657,14 +720,14 @@ export default function PresaleInterface() {
                       {rate
                         ? `${(Number(rate) / 100).toLocaleString()} ${
                             tokenSymbol ?? "TOKEN"
-                          } / ETH`
+                          } / BLOCX`
                         : "Loading..."}
                     </span>
                   </div>
                   <Separator className="bg-muted-blue" />
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-blue">
-                      Raised (ETH)
+                      Raised (BLOCX)
                     </span>
                     <span className="font-semibold text-muted-blue-alt">
                       {weiRaised
@@ -676,7 +739,7 @@ export default function PresaleInterface() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-blue">
-                      Soft Cap (ETH)
+                      Soft Cap (BLOCX)
                     </span>
                     <span className="font-semibold text-white">
                       {softCap
@@ -688,7 +751,7 @@ export default function PresaleInterface() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-blue">
-                      Hard Cap (ETH)
+                      Hard Cap (BLOCX)
                     </span>
                     <span className="font-semibold text-white">
                       {hardCap
@@ -706,7 +769,7 @@ export default function PresaleInterface() {
                   </div> */}
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-blue">
-                      Min Buy (ETH)
+                      Min Buy (BLOCX)
                     </span>
                     <span className="font-semibold text-white">
                       {minBuy
@@ -716,7 +779,7 @@ export default function PresaleInterface() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-blue">
-                      Max Buy (ETH)
+                      Max Buy (BLOCX)
                     </span>
                     <span className="font-semibold text-white">
                       {maxBuy
@@ -750,7 +813,7 @@ export default function PresaleInterface() {
                   <span className="text-white text-xs">✓</span>
                 </div>
                 <p className="text-sm text-muted-blue">
-                  5% bonus tokens this stage
+                  15% token discount this stage
                 </p>
               </div>
               <div className="flex items-start gap-3">
