@@ -5,29 +5,17 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
 } from "wagmi";
-import { parseEther, formatEther, formatUnits } from "viem";
+import { formatEther, formatUnits } from "viem";
 
 import { tokenContract, PresaleContract } from "../lib/config";
-import {
-  getPresaleStatus,
-  getTimeUntilStart,
-  getTimeUntilEnd,
-  // formatPresaleDate,
-  PresaleStatus,
-  // PRESALE_START_TIME,
-  // PRESALE_END_TIME,
-  type TimeRemaining,
-} from "../lib/utils";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
   AlertCircle,
   TrendingUp,
-  Zap,
   Settings,
   ExternalLink,
   MessageCircle,
@@ -35,52 +23,17 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Link } from "react-router-dom";
 import logo from "@/assets/logo_falwsb.png";
+import bigjuicy from "@/assets/bigjuicy.png";
 
 export default function PresaleInterface() {
-  const [ethValue, setEthValue] = useState("0");
   const [error, setError] = useState<string | null>(null);
   const [showTxHash, setShowTxHash] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const { address, isConnected } = useAccount();
-  const {
-    writeContract,
-    data: txHash,
-    isPending,
-    error: contractError,
-  } = useWriteContract();
+  const { address } = useAccount();
+  const { data: txHash, error: contractError } = useWriteContract();
   const { isSuccess: txSuccess } = useWaitForTransactionReceipt({
     hash: txHash,
   });
-
-  // Real countdown state and status
-  const [timeLeft, setTimeLeft] = useState<TimeRemaining>({
-    days: 0,
-    hours: 0,
-    minutes: 0,
-    seconds: 0,
-  });
-  const [currentPresaleStatus, setCurrentPresaleStatus] =
-    useState<PresaleStatus>(getPresaleStatus());
-
-  // Real countdown timer
-  useEffect(() => {
-    const updateTimer = () => {
-      const status = getPresaleStatus();
-      setCurrentPresaleStatus(status);
-
-      if (status === PresaleStatus.NOT_STARTED) {
-        setTimeLeft(getTimeUntilStart());
-      } else if (status === PresaleStatus.ACTIVE) {
-        setTimeLeft(getTimeUntilEnd());
-      } else {
-        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-      }
-    };
-
-    updateTimer();
-    const timer = setInterval(updateTimer, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   // Set error from contract error and auto-dismiss after 8 seconds
   useEffect(() => {
@@ -119,7 +72,6 @@ export default function PresaleInterface() {
   // });
 
   const tokenSymbol = "$FARMR";
-  const saleAllocation = 6000000;
 
   const { data: rawTokenBalance, refetch: refetchTokenBalance } =
     useReadContract({
@@ -129,22 +81,10 @@ export default function PresaleInterface() {
       args: address ? [address] : undefined,
     });
 
-  const { data: rate } = useReadContract({
-    address: PresaleContract.address as `0x${string}`,
-    abi: PresaleContract.abi,
-    functionName: "rate",
-  });
-
   const { data: weiRaised, refetch: refetchWeiRaised } = useReadContract({
     address: PresaleContract.address as `0x${string}`,
     abi: PresaleContract.abi,
     functionName: "weiRaised",
-  });
-
-  const { data: presaleStatus } = useReadContract({
-    address: PresaleContract.address as `0x${string}`,
-    abi: PresaleContract.abi,
-    functionName: "getPreSaleStatus",
   });
 
   const { data: owner } = useReadContract({
@@ -157,24 +97,6 @@ export default function PresaleInterface() {
     address: PresaleContract.address as `0x${string}`,
     abi: PresaleContract.abi,
     functionName: "hardCap",
-  });
-
-  const { data: tokensSold, refetch: refetchTokensSold } = useReadContract({
-    address: PresaleContract.address as `0x${string}`,
-    abi: PresaleContract.abi,
-    functionName: "tokensSold",
-  });
-
-  const { data: minBuy } = useReadContract({
-    address: PresaleContract.address as `0x${string}`,
-    abi: PresaleContract.abi,
-    functionName: "costToEnter",
-  });
-
-  const { data: maxBuy } = useReadContract({
-    address: PresaleContract.address as `0x${string}`,
-    abi: PresaleContract.abi,
-    functionName: "maxCostToEnter",
   });
 
   // Show transaction hash when it becomes available and auto-dismiss
@@ -192,14 +114,12 @@ export default function PresaleInterface() {
   useEffect(() => {
     if (txSuccess) {
       setError(null);
-      setEthValue("0"); // Clear the input
       setShowTxHash(null); // Hide transaction hash when success occurs
       setShowSuccess(true); // Show success message
 
       // Refetch all relevant data
       refetchTokenBalance();
       refetchWeiRaised();
-      refetchTokensSold();
 
       // Auto-dismiss success message after 5 seconds
       const timer = setTimeout(() => {
@@ -207,7 +127,7 @@ export default function PresaleInterface() {
       }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [txSuccess, refetchTokenBalance, refetchWeiRaised, refetchTokensSold]);
+  }, [txSuccess, refetchTokenBalance, refetchWeiRaised]);
 
   const formattedTokenBalance = useMemo(() => {
     if (rawTokenBalance == null || tokenDecimals == null) return "0";
@@ -219,123 +139,6 @@ export default function PresaleInterface() {
       return "0";
     }
   }, [rawTokenBalance, tokenDecimals]);
-
-  const computedTokenOutput = useMemo(() => {
-    // Return loading indicator or 0 if essential data isn't available
-    if (!rate || !ethValue || ethValue === "0" || ethValue === "") {
-      return "0";
-    }
-
-    try {
-      // Parse ETH amount
-      const ethAmount = parseFloat(ethValue);
-      if (isNaN(ethAmount) || ethAmount <= 0) return "0";
-
-      // Convert rate from contract (divide by 100) and parse as number for easier calculation
-      const rateNumber = Number(rate) / 100;
-      if (rateNumber <= 0) return "0";
-
-      // Calculate tokens: ETH amount * rate
-      const tokenAmount = ethAmount * rateNumber;
-
-      // Format the result
-      if (tokenAmount >= 1) {
-        return Math.floor(tokenAmount).toLocaleString();
-      } else if (tokenAmount >= 0.01) {
-        return tokenAmount.toFixed(2);
-      } else {
-        return tokenAmount.toFixed(6);
-      }
-    } catch (error) {
-      console.error("Error calculating token output:", error);
-      return "0";
-    }
-  }, [rate, ethValue, tokenDecimals]);
-
-  const handleMax = () => {
-    if (maxBuy) {
-      setEthValue(Number(formatEther(maxBuy as bigint)).toString());
-    }
-  };
-
-  const handleBuy = () => {
-    if (!isConnected || !address) {
-      setError("Please connect your wallet first");
-      return;
-    }
-
-    // Clear previous errors
-    setError(null);
-
-    // Validate input
-    if (!ethValue || ethValue === "0") {
-      setError("Please enter an amount to purchase");
-      return;
-    }
-
-    // Check if presale is active
-    if (currentPresaleStatus === PresaleStatus.NOT_STARTED) {
-      setError("Presale has not started yet");
-      return;
-    }
-
-    if (currentPresaleStatus === PresaleStatus.ENDED) {
-      setError("Presale has ended. Token purchases are no longer available.");
-      return;
-    }
-
-    if (!presaleStatus) {
-      setError("Presale is not currently active");
-      return;
-    }
-
-    try {
-      const value = parseEther(ethValue);
-
-      // Validate min/max buy amounts
-      if (minBuy && value < (minBuy as bigint)) {
-        setError(
-          `Minimum purchase amount is ${Number(
-            formatEther(minBuy as bigint)
-          )} BLOCX`
-        );
-        return;
-      }
-
-      if (maxBuy && value > (maxBuy as bigint)) {
-        setError(
-          `Maximum purchase amount is ${Number(
-            formatEther(maxBuy as bigint)
-          )} BLOCX`
-        );
-        return;
-      }
-
-      // Check if hard cap would be exceeded
-      if (
-        hardCap &&
-        weiRaised &&
-        (weiRaised as bigint) + value > (hardCap as bigint)
-      ) {
-        setError(
-          "This purchase would exceed the hard cap. Please reduce the amount."
-        );
-        return;
-      }
-
-      writeContract({
-        address: PresaleContract.address as `0x${string}`,
-        abi: PresaleContract.abi,
-        functionName: "buyTokens",
-        args: [address],
-        value,
-        gas: 300000n, // Add explicit gas limit
-      });
-    } catch (err) {
-      setError("Invalid amount entered. Please check your input.");
-      console.error("Transaction error:", err);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-light-blue font-baloo">
@@ -414,28 +217,27 @@ export default function PresaleInterface() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
         {/* Hero Section */}
-        <div className="text-center mb-12">
-          <Badge
-            variant="secondary"
-            className="mb-4 bg-[#F1F1F1] text-dark-blue-green border-dark-blue-green"
-          >
-            <Zap className="w-3 h-3 mr-1" />
-            {currentPresaleStatus === PresaleStatus.NOT_STARTED
-              ? "Presale Coming Soon"
-              : currentPresaleStatus === PresaleStatus.ACTIVE
-              ? "Presale Live Now"
-              : "Presale Ended"}
-          </Badge>
-          <h1 className="text-4xl md:text-6xl font-bold text-dark-blue-green mb-4 font-fredoka">
-            Farmr<span className="text-[#19A24C]">swap</span>
-            <br />
-            <span className="text-dark-blue-green bg-clip-text">
-              Token Presale
-            </span>
-          </h1>
-          <p className="text-lg text-dark-blue-green max-w-2xl mx-auto">
-            Secure your tokens at the best price before the next stage begins.
-          </p>
+        <div className="mb-12 max-w-6xl mx-auto">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+            <div className="text-center lg:text-left flex-1">
+              <h1 className="text-4xl md:text-6xl font-bold text-dark-blue-green mb-4 font-fredoka">
+                Farmr<span className="text-[#19A24C]">swap</span>
+                <br />
+                <span className="text-dark-blue-green bg-clip-text">
+                  Token Presale
+                </span>
+              </h1>
+              <p className="text-lg text-dark-blue-green">
+                Secure your tokens at the best price before the next stage
+                begins.
+              </p>
+            </div>
+            <img
+              src={bigjuicy}
+              alt="Farmr Token"
+              className="hidden lg:block w-64 h-64 xl:w-72 xl:h-72 object-contain flex-shrink-0"
+            />
+          </div>
 
           {/* Presale Schedule */}
           {/* <div className="mt-6 space-y-2">
@@ -521,8 +323,13 @@ export default function PresaleInterface() {
           {/* Center Column - Main Purchase Card */}
           <Card className="lg:col-span-1 lg:order-2 order-2 border-2 border-bright-blue shadow-xl bg-dark-blue">
             <CardContent className="pt-6">
+              <div className="text-center">
+                <span className="text-lg font-bold text-bright-blue">
+                  Blocx Presale Complete! 🎉
+                </span>
+              </div>
               {/* Progress Section */}
-              <div className="mb-6">
+              <div className="mb-4 mt-4">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm font-medium text-[#F1F1F1]">
                     BLOCX Raised
@@ -538,11 +345,6 @@ export default function PresaleInterface() {
                   </span>
                 </div>
                 <Progress value={100} className="h-3 mb-2 progress-bar" />
-                <div className="text-center">
-                  <span className="text-lg font-bold text-bright-blue">
-                    Blocx Presale Complete! 🎉
-                  </span>
-                </div>
               </div>
 
               <Separator className="bg-muted-blue my-6" />
@@ -550,7 +352,7 @@ export default function PresaleInterface() {
               {/* USDC Sale Notice */}
               <div className="text-center mb-6">
                 <p className="text-lg text-white mb-3">
-                  💡 <strong>USDC Sale Still Ongoing!</strong>
+                  <strong>Missed out on the Blocx presale?</strong>
                 </p>
                 <p className="text-muted-blue mb-4">
                   You can still purchase $FARMR tokens with USDC on ETH Mainnet
@@ -622,11 +424,7 @@ export default function PresaleInterface() {
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-blue">Rate</span>
                     <span className="font-semibold text-white">
-                      {rate
-                        ? `${(Number(rate) / 100).toLocaleString()} ${
-                            tokenSymbol ?? "TOKEN"
-                          } / BLOCX`
-                        : "Loading..."}
+                      1.95 {tokenSymbol ?? "TOKEN"} / BLOCX
                     </span>
                   </div>
                   <Separator className="bg-muted-blue" />
@@ -634,63 +432,28 @@ export default function PresaleInterface() {
                     <span className="text-sm text-muted-blue">
                       Raised (BLOCX)
                     </span>
-                    <span className="font-semibold text-muted-blue-alt">
-                      {weiRaised
-                        ? `${Number(
-                            formatEther(weiRaised as bigint)
-                          ).toLocaleString()}`
-                        : "0"}
-                    </span>
+                    <span className="font-semibold text-white">3,000,000</span>
                   </div>
-                  {/* <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-blue">
-                      Soft Cap (BLOCX)
-                    </span>
-                    <span className="font-semibold text-white">
-                      {softCap
-                        ? Number(
-                            formatEther(softCap as bigint)
-                          ).toLocaleString()
-                        : "-"}
-                    </span>
-                  </div> */}
+
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-blue">
                       Hard Cap (BLOCX)
                     </span>
-                    <span className="font-semibold text-white">
-                      {hardCap
-                        ? Number(
-                            formatEther(hardCap as bigint)
-                          ).toLocaleString()
-                        : "-"}
-                    </span>
+                    <span className="font-semibold text-white">3,000,000</span>
                   </div>
-                  {/* <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-blue">Tokens Sold</span>
-                    <span className="font-semibold text-white">
-                      {formattedTokensSold}
-                    </span>
-                  </div> */}
+
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-blue">
                       Min Buy (BLOCX)
                     </span>
-                    <span className="font-semibold text-white">
-                      {minBuy
-                        ? Number(formatEther(minBuy as bigint)).toLocaleString()
-                        : "-"}
-                    </span>
+                    <span className="font-semibold text-white">10,000</span>
                   </div>
+
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-blue">
                       Max Buy (BLOCX)
                     </span>
-                    <span className="font-semibold text-white">
-                      {maxBuy
-                        ? Number(formatEther(maxBuy as bigint)).toLocaleString()
-                        : "-"}
-                    </span>
+                    <span className="font-semibold text-white">500,000</span>
                   </div>
                 </div>
               </CardContent>
