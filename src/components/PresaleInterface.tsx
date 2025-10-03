@@ -21,19 +21,16 @@ import {
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
   AlertCircle,
-  Clock,
   TrendingUp,
-  ChevronDown,
   Zap,
   Settings,
+  ExternalLink,
+  MessageCircle,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Link } from "react-router-dom";
@@ -254,26 +251,6 @@ export default function PresaleInterface() {
       return "0";
     }
   }, [rate, ethValue, tokenDecimals]);
-
-  // Helper function to format tokens from wei to actual count
-  const formattedTokensSold = useMemo(() => {
-    if (!tokensSold || !tokenDecimals) return "0";
-    const tokensSoldActual =
-      Number(tokensSold as bigint) / Math.pow(10, Number(tokenDecimals));
-    return Math.floor(tokensSoldActual).toLocaleString();
-  }, [tokensSold, tokenDecimals]);
-
-  const progressPercentage = useMemo(() => {
-    if (!tokensSold || !tokenDecimals) return 0;
-
-    // Convert tokensSold from wei to actual tokens
-    const tokensSoldActual =
-      Number(tokensSold as bigint) / Math.pow(10, Number(tokenDecimals));
-
-    // Calculate percentage
-    const pct = (tokensSoldActual * 100) / saleAllocation;
-    return Math.min(100, Math.max(0, Math.round(pct)));
-  }, [tokensSold, saleAllocation, tokenDecimals]);
 
   const handleMax = () => {
     if (maxBuy) {
@@ -543,148 +520,90 @@ export default function PresaleInterface() {
 
           {/* Center Column - Main Purchase Card */}
           <Card className="lg:col-span-1 lg:order-2 order-2 border-2 border-bright-blue shadow-xl bg-dark-blue">
-            <CardHeader className="text-center pb-4">
-              <div className="inline-flex items-center gap-2 text-bright-blue text-sm font-semibold mb-3">
-                <Clock className="w-4 h-4" />
-                {currentPresaleStatus === PresaleStatus.NOT_STARTED
-                  ? "TIME UNTIL START"
-                  : currentPresaleStatus === PresaleStatus.ACTIVE
-                  ? "TIME REMAINING"
-                  : "PRESALE ENDED"}
-              </div>
-              <div className="grid grid-cols-4 gap-2 text-center">
-                <div className="bg-light-gray rounded-lg p-3">
-                  <div className="text-2xl font-bold text-dark-blue-green">
-                    {timeLeft.days.toString().padStart(2, "0")}
-                  </div>
-                  <div className="text-xs text-black mt-1">DAYS</div>
-                </div>
-                <div className="bg-light-gray rounded-lg p-3">
-                  <div className="text-2xl font-bold text-dark-blue-green">
-                    {timeLeft.hours.toString().padStart(2, "0")}
-                  </div>
-                  <div className="text-xs text-black mt-1">HOURS</div>
-                </div>
-                <div className="bg-light-gray rounded-lg p-3">
-                  <div className="text-2xl font-bold text-dark-blue-green">
-                    {timeLeft.minutes.toString().padStart(2, "0")}
-                  </div>
-                  <div className="text-xs text-black mt-1">MINS</div>
-                </div>
-                <div className="bg-light-gray rounded-lg p-3">
-                  <div className="text-2xl font-bold text-dark-blue-green">
-                    {timeLeft.seconds.toString().padStart(2, "0")}
-                  </div>
-                  <div className="text-xs text-black mt-1">SECS</div>
-                </div>
-              </div>
-            </CardHeader>
-
-            <Separator />
-
             <CardContent className="pt-6">
               {/* Progress Section */}
               <div className="mb-6">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm font-medium text-[#F1F1F1]">
-                    Tokens Sold
+                    BLOCX Raised
                   </span>
                   <span className="text-sm font-medium text-[#F1F1F1]">
-                    {formattedTokensSold}/ {saleAllocation.toLocaleString()}
+                    {hardCap && weiRaised
+                      ? `${(
+                          Number(formatEther(weiRaised as bigint)) / 1000000
+                        ).toFixed(1)}M / ${(
+                          Number(formatEther(hardCap as bigint)) / 1000000
+                        ).toFixed(1)}M`
+                      : "Loading..."}
                   </span>
                 </div>
-                <Progress
-                  value={progressPercentage}
-                  className="h-3 mb-2 progress-bar"
-                />
+                <Progress value={100} className="h-3 mb-2 progress-bar" />
                 <div className="text-center">
-                  <span className="text-lg font-bold text-[#F1F1F1]">
-                    {progressPercentage}% Complete
+                  <span className="text-lg font-bold text-bright-blue">
+                    Blocx Presale Complete! 🎉
                   </span>
                 </div>
               </div>
 
-              {/* Payment Method Selector */}
-              <div className="mb-6">
-                <Label className="text-sm font-medium mb-2 block text-white">
-                  network
-                </Label>
-                <Button
-                  variant="outline"
-                  className="w-full justify-between h-12 bg-light-gray hover:bg-muted-blue border-muted-blue"
+              <Separator className="bg-muted-blue my-6" />
+
+              {/* USDC Sale Notice */}
+              <div className="text-center mb-6">
+                <p className="text-lg text-white mb-3">
+                  💡 <strong>USDC Sale Still Ongoing!</strong>
+                </p>
+                <p className="text-muted-blue mb-4">
+                  You can still purchase $FARMR tokens with USDC on ETH Mainnet
+                </p>
+                <a
+                  href="https://tally.so/r/mO2kB7"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-bright-blue hover:bg-[#19A24C] text-white font-semibold rounded-lg transition-colors"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">Ξ</span>
-                    </div>
-                    <span className="font-medium text-black">
-                      Blocx Mainnet
-                    </span>
-                  </div>
-                  <ChevronDown className="w-4 h-4" />
-                </Button>
+                  Buy with USDC
+                  <ExternalLink className="w-4 h-4" />
+                </a>
               </div>
 
-              {/* Input Fields */}
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                  <Label className="text-sm mb-2 block text-white">
-                    You Pay (BLOCX)
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      type="number"
-                      value={ethValue}
-                      onChange={(e) => setEthValue(e.target.value)}
-                      placeholder="0.00"
-                      className="h-12 text-center font-semibold text-lg bg-light-gray text-dark-blue-green border-muted-blue pr-16"
-                    />
-                    <Button
-                      type="button"
-                      onClick={handleMax}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 px-2 text-xs bg-[#2463EB] hover:bg-dark-blue-green text-white font-medium"
-                    >
-                      MAX
-                    </Button>
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-sm mb-2 block text-white">
-                    You Receive ({tokenSymbol ?? "TOKEN"})
-                  </Label>
-                  <Input
-                    type="text"
-                    value={computedTokenOutput}
-                    readOnly
-                    placeholder={
-                      rate ? "Enter BLOCX amount" : "Loading rate..."
-                    }
-                    className="h-12 text-center font-semibold text-lg bg-light-gray text-dark-blue-green border-muted-blue"
-                  />
+              <Separator className="bg-muted-blue my-6" />
+
+              {/* Links Section */}
+              <div className="space-y-4">
+                <h3 className="text-white font-semibold text-center mb-4">
+                  Join Our Community
+                </h3>
+                <div className="grid grid-cols-1 gap-3">
+                  <a
+                    href="https://farmrswap.gitbook.io/docs/roadmap"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-light-gray hover:bg-muted-blue text-dark-blue-green font-medium rounded-lg transition-colors"
+                  >
+                    📋 Roadmap
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                  <a
+                    href="https://t.me/farmrswap"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-light-gray hover:bg-muted-blue text-dark-blue-green font-medium rounded-lg transition-colors"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    Telegram (FARMRs)
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                  <a
+                    href="https://x.com/farmrswap"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-light-gray hover:bg-muted-blue text-dark-blue-green font-medium rounded-lg transition-colors"
+                  >
+                    𝕏 Twitter/X
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
                 </div>
               </div>
-
-              {/* Buy Button */}
-              <Button
-                onClick={handleBuy}
-                disabled={
-                  !isConnected ||
-                  isPending ||
-                  !ethValue ||
-                  ethValue === "0" ||
-                  currentPresaleStatus === PresaleStatus.NOT_STARTED ||
-                  currentPresaleStatus === PresaleStatus.ENDED
-                }
-                className="w-full h-12 bg-[#19A24C] hover:bg-[#2463EB] text-white font-semibold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isPending
-                  ? "Processing..."
-                  : currentPresaleStatus === PresaleStatus.NOT_STARTED
-                  ? "Presale Not Started"
-                  : currentPresaleStatus === PresaleStatus.ENDED
-                  ? "Presale Ended"
-                  : "Buy Tokens"}
-              </Button>
             </CardContent>
           </Card>
 
@@ -814,6 +733,46 @@ export default function PresaleInterface() {
           </Card>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="bg-dark-blue border-t border-muted-blue mt-16 py-8">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <img src={logo} alt="FarmrSwap" className="w-8 h-8 rounded-lg" />
+              <p className="text-muted-blue text-sm">
+                © 2025 Farmrswap. All rights reserved.
+              </p>
+            </div>
+            <div className="flex items-center gap-6">
+              <a
+                href="https://farmrswap.gitbook.io/docs/roadmap"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-blue hover:text-white text-sm transition-colors"
+              >
+                Roadmap
+              </a>
+              <a
+                href="https://t.me/farmrswap"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-blue hover:text-white text-sm transition-colors"
+              >
+                Telegram
+              </a>
+              <a
+                href="https://x.com/farmrswap"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-blue hover:text-white text-sm transition-colors"
+              >
+                Twitter/X
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
