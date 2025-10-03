@@ -156,12 +156,6 @@ export default function PresaleInterface() {
     functionName: "owner",
   });
 
-  const { data: softCap } = useReadContract({
-    address: PresaleContract.address as `0x${string}`,
-    abi: PresaleContract.abi,
-    functionName: "softCap",
-  });
-
   const { data: hardCap } = useReadContract({
     address: PresaleContract.address as `0x${string}`,
     abi: PresaleContract.abi,
@@ -532,7 +526,7 @@ export default function PresaleInterface() {
                     <span className="text-white text-xs">✓</span>
                   </div>
                   <p className="text-sm text-muted-blue">
-                    5% bonus tokens this stage
+                    10% token price discount this stage
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
@@ -541,14 +535,6 @@ export default function PresaleInterface() {
                   </div>
                   <p className="text-sm text-muted-blue">
                     Automatic distribution
-                  </p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-bright-blue flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-white text-xs">✓</span>
-                  </div>
-                  <p className="text-sm text-muted-blue">
-                    Verified smart contract
                   </p>
                 </div>
               </CardContent>
@@ -737,7 +723,7 @@ export default function PresaleInterface() {
                         : "0"}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center">
+                  {/* <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-blue">
                       Soft Cap (BLOCX)
                     </span>
@@ -748,7 +734,7 @@ export default function PresaleInterface() {
                           ).toLocaleString()
                         : "-"}
                     </span>
-                  </div>
+                  </div> */}
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-blue">
                       Hard Cap (BLOCX)
@@ -813,7 +799,7 @@ export default function PresaleInterface() {
                   <span className="text-white text-xs">✓</span>
                 </div>
                 <p className="text-sm text-muted-blue">
-                  15% token discount this stage
+                  10% token price discount this stage
                 </p>
               </div>
               <div className="flex items-start gap-3">
@@ -822,14 +808,6 @@ export default function PresaleInterface() {
                 </div>
                 <p className="text-sm text-muted-blue">
                   Automatic distribution
-                </p>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-5 h-5 rounded-full bg-bright-blue flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-white text-xs">✓</span>
-                </div>
-                <p className="text-sm text-muted-blue">
-                  Verified smart contract
                 </p>
               </div>
             </CardContent>

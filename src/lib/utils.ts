@@ -20,8 +20,8 @@ export const PresaleStatus = {
   ENDED: "ENDED" as const
 } as const;
 
-export const PRESALE_START_TIME = 1755961200;
-export const PRESALE_END_TIME = 1757163600;
+export const PRESALE_START_TIME = 1758722400; 
+export const PRESALE_END_TIME = 1759708740;
 
 export function getPresaleStatus(): PresaleStatus {
   const now = Math.floor(Date.now() / 1000);
